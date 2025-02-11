@@ -33,6 +33,23 @@ The project uses a specific version of Rust, which is managed automatically usin
    rustup update
    ```
 
+### Development
+
+1. **Cargo Watch** with `cargo-watch`
+
+   - Install cargo-watch
+
+   ```sh
+   cargo install cargo-watch
+   ```
+
+   - Run Command:
+
+   ```bash
+   cargo watch -x run
+   ```
+
+   Note: This auto re-compiles the executable and re-run the server
 
 ### Running The Server
 
