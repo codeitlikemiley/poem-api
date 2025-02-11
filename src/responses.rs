@@ -1,165 +1,80 @@
-use crate::models::Item;
+use poem::Error;
 use poem_openapi::{
-    payload::{Json, PlainText},
-    ApiResponse,
+    error::ParseRequestPayloadError,
+    payload::Json,
+    types::{ParseFromJSON, ToJSON},
+    ApiResponse, Object,
 };
+use serde::{Deserialize, Serialize};
 
-pub mod login {
-    use super::*;
+#[derive(Object, Serialize, Deserialize)]
+pub struct Code<T: ParseFromJSON + ToJSON + Send + Sync> {
+    code: u16,
+    message: String,
+    data: Option<T>,
+}
 
-    #[derive(ApiResponse)]
-    pub enum Response {
-        #[oai(status = 200)]
-        Ok(PlainText<String>),
+impl<T: ParseFromJSON + ToJSON + Send + Sync> Code<T> {
+    pub fn success(data: T) -> Self {
+        Self {
+            code: 200,
+            message: "OK".to_string(),
+            data: Some(data),
+        }
     }
 
-    #[derive(ApiResponse)]
-    #[oai(bad_request_handler = "bad_request_handler")]
-    pub enum Error {
-        #[oai(status = 500)]
-        InternalError,
-        #[oai(status = 400)]
-        BadRequest(PlainText<String>),
+    pub fn created(data: T) -> Self {
+        Self {
+            code: 201,
+            message: "Created".to_string(),
+            data: Some(data),
+        }
     }
 
-    fn bad_request_handler(err: poem::Error) -> Error {
-        Error::BadRequest(PlainText(format!(
-            "Invalid credentials: {}",
-            err.to_string()
-        )))
+    pub fn not_found() -> Self {
+        Self {
+            code: 404,
+            message: "Not Found".to_string(),
+            data: None,
+        }
+    }
+
+    pub fn bad_request(msg: String) -> Self {
+        Self {
+            code: 400,
+            message: msg,
+            data: None,
+        }
+    }
+
+    pub fn internal_error(msg: String) -> Self {
+        Self {
+            code: 500,
+            message: msg,
+            data: None,
+        }
     }
 }
 
-pub mod fetch_items {
-    use super::*;
-
-    #[derive(ApiResponse)]
-    pub enum Response {
-        #[oai(status = 200)]
-        Ok(Json<Vec<Item>>),
-    }
-
-    #[derive(ApiResponse)]
-    #[oai(bad_request_handler = "bad_request_handler")]
-    pub enum Error {
-        #[oai(status = 500)]
-        InternalError,
-        #[oai(status = 400)]
-        BadRequest(PlainText<String>),
-    }
-
-    fn bad_request_handler(err: poem::Error) -> Error {
-        Error::BadRequest(PlainText(format!(
-            "Invalid request for fetching items: {}",
-            err.to_string()
-        )))
-    }
+#[derive(ApiResponse)]
+#[oai(bad_request_handler = "handle_bad_request")]
+pub enum Response<T: ParseFromJSON + ToJSON + Send + Sync> {
+    #[oai(status = 200)]
+    Ok(Json<Code<T>>),
+    #[oai(status = 201)]
+    Created(Json<Code<T>>),
+    #[oai(status = 400)]
+    BadRequest(Json<Code<T>>),
+    #[oai(status = 404)]
+    NotFound(Json<Code<T>>),
+    #[oai(status = 500)]
+    InternalError(Json<Code<T>>),
 }
 
-pub mod find_item {
-    use super::*;
-
-    #[derive(ApiResponse)]
-    pub enum Response {
-        #[oai(status = 200)]
-        Ok(Json<Item>),
-    }
-
-    #[derive(ApiResponse)]
-    #[oai(bad_request_handler = "bad_request_handler")]
-    pub enum Error {
-        #[oai(status = 404)]
-        NotFound,
-        #[oai(status = 400)]
-        BadRequest(PlainText<String>),
-    }
-
-    fn bad_request_handler(err: poem::Error) -> Error {
-        Error::BadRequest(PlainText(format!(
-            "Invalid request for finding item: {}",
-            err.to_string()
-        )))
-    }
-}
-
-pub mod create_item {
-    use super::*;
-
-    #[derive(ApiResponse)]
-    pub enum Response {
-        #[oai(status = 201)]
-        Created(Json<Item>),
-    }
-
-    #[derive(ApiResponse)]
-    #[oai(bad_request_handler = "bad_request_handler")]
-    pub enum Error {
-        #[oai(status = 500)]
-        InternalError,
-        #[oai(status = 400)]
-        BadRequest(PlainText<String>),
-    }
-
-    fn bad_request_handler(err: poem::Error) -> Error {
-        Error::BadRequest(PlainText(format!(
-            "Invalid request for creating item: {}",
-            err.to_string()
-        )))
-    }
-}
-
-pub mod modify_item {
-    use super::*;
-
-    #[derive(ApiResponse)]
-    pub enum Response {
-        #[oai(status = 200)]
-        Ok(Json<Item>),
-    }
-
-    #[derive(ApiResponse)]
-    #[oai(bad_request_handler = "bad_request_handler")]
-    pub enum Error {
-        #[oai(status = 404)]
-        NotFound,
-        #[oai(status = 400)]
-        BadRequest(PlainText<String>),
-        #[oai(status = 500)]
-        InternalError,
-    }
-
-    fn bad_request_handler(err: poem::Error) -> Error {
-        Error::BadRequest(PlainText(format!(
-            "Invalid request for modifying item: {}",
-            err.to_string()
-        )))
-    }
-}
-
-pub mod remove_item {
-    use super::*;
-
-    #[derive(ApiResponse)]
-    pub enum Response {
-        #[oai(status = 200)]
-        Ok(PlainText<String>),
-    }
-
-    #[derive(ApiResponse)]
-    #[oai(bad_request_handler = "bad_request_handler")]
-    pub enum Error {
-        #[oai(status = 404)]
-        NotFound,
-        #[oai(status = 400)]
-        BadRequest(PlainText<String>),
-        #[oai(status = 500)]
-        InternalError,
-    }
-
-    fn bad_request_handler(err: poem::Error) -> Error {
-        Error::BadRequest(PlainText(format!(
-            "Invalid request for removing item: {}",
-            err.to_string()
-        )))
+fn handle_bad_request<T: ParseFromJSON + ToJSON + Send + Sync>(err: Error) -> Response<T> {
+    if err.is::<ParseRequestPayloadError>() {
+        Response::BadRequest(Json(Code::bad_request(err.to_string())))
+    } else {
+        Response::InternalError(Json(Code::internal_error(err.to_string())))
     }
 }

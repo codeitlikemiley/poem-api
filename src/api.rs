@@ -1,17 +1,13 @@
 use jwt::SignWithKey;
-use poem::{web::Data, Result};
-use poem_openapi::{
-    param::Path,
-    payload::{Json, PlainText},
-    OpenApi, Tags,
-};
+use poem::web::Data;
+use poem_openapi::{param::Path, payload::Json, OpenApi, Tags};
 
 use crate::{
     auth::{AuthUser, Authenticate, ServerKey},
     db::{save_db, Db},
     models::Item,
     requests::{ItemRequest, LoginRequest},
-    responses::{create_item, fetch_items, find_item, login, modify_item, remove_item},
+    responses::{Code, Response},
 };
 
 #[derive(Tags)]
@@ -29,25 +25,25 @@ impl Api {
         &self,
         server_key: Data<&ServerKey>,
         req: Json<LoginRequest>,
-    ) -> Result<login::Response, login::Error> {
-        use login::{Error::InternalError, Response};
-
+    ) -> Response<String> {
         let user = AuthUser {
             username: req.0.username,
         }
-        .sign_with_key(server_key.0)
-        .map_err(|_| InternalError)?;
+        .sign_with_key(server_key.0);
 
-        Ok(Response::Ok(PlainText(user)))
+        match user {
+            Ok(resource) => Response::Ok(Json(Code::success(resource))),
+            Err(_) => Response::InternalError(Json(Code::internal_error(
+                "Invalid Credentials".to_string(),
+            ))),
+        }
     }
 
     #[oai(path = "/items", method = "get", tag = "Group::Items")]
-    async fn get_items(&self, db: Data<&Db>) -> Result<fetch_items::Response, fetch_items::Error> {
-        use fetch_items::Response;
-
+    async fn get_items(&self, db: Data<&Db>) -> Response<Vec<Item>> {
         let db = db.lock().await;
 
-        Ok(Response::Ok(Json(db.items.clone())))
+        Response::Ok(Json(Code::success(db.items.clone())))
     }
 
     #[oai(path = "/items", method = "post", tag = "Group::Items")]
@@ -56,9 +52,7 @@ impl Api {
         _auth: Authenticate,
         db: Data<&Db>,
         req: Json<ItemRequest>,
-    ) -> Result<create_item::Response, create_item::Error> {
-        use create_item::{Error::InternalError, Response};
-
+    ) -> Response<Item> {
         let mut db = db.lock().await;
 
         let new_item = Item {
@@ -69,27 +63,20 @@ impl Api {
         db.last_id += 1;
         db.items.push(new_item.clone());
 
-        save_db(&db).await.map_err(|_| InternalError)?;
-
-        Ok(Response::Created(Json(new_item)))
+        match save_db(&db).await {
+            Ok(_) => Response::Created(Json(Code::created(new_item))),
+            Err(e) => Response::InternalError(Json(Code::internal_error(e.to_string()))),
+        }
     }
 
     #[oai(path = "/items/:id", method = "get", tag = "Group::Items")]
-    async fn get_item(
-        &self,
-        db: Data<&Db>,
-        id: Path<u32>,
-    ) -> Result<find_item::Response, find_item::Error> {
-        use find_item::{Error::NotFound, Response};
-
+    async fn get_item(&self, db: Data<&Db>, id: Path<u32>) -> Response<Item> {
         let db = db.lock().await;
 
-        db.items
-            .iter()
-            .find(|item| item.id == *id)
-            .cloned()
-            .map(|item| Response::Ok(Json(item)))
-            .ok_or_else(|| NotFound)
+        match db.items.iter().find(|item| item.id == *id).cloned() {
+            Some(item) => Response::Ok(Json(Code::success(item))),
+            None => Response::NotFound(Json(Code::not_found())),
+        }
     }
 
     #[oai(path = "/items/:id", method = "put", tag = "Group::Items")]
@@ -99,27 +86,20 @@ impl Api {
         db: Data<&Db>,
         id: Path<u32>,
         req: Json<ItemRequest>,
-    ) -> Result<modify_item::Response, modify_item::Error> {
-        use modify_item::{
-            Error::{InternalError, NotFound},
-            Response,
-        };
+    ) -> Response<Item> {
         let mut db = db.lock().await;
 
-        let updated_item = {
-            if let Some(item) = db.items.iter_mut().find(|item| item.id == *id) {
+        match db.items.iter_mut().find(|item| item.id == *id) {
+            Some(item) => {
                 item.name = req.name.clone();
-                Some(item.clone())
-            } else {
-                None
-            }
-        };
+                let updated_item = item.clone();
 
-        if let Some(item) = updated_item {
-            save_db(&db).await.map_err(|_| InternalError)?;
-            Ok(Response::Ok(Json(item)))
-        } else {
-            Err(NotFound)
+                match save_db(&db).await {
+                    Ok(_) => Response::Ok(Json(Code::success(updated_item))),
+                    Err(e) => Response::InternalError(Json(Code::internal_error(e.to_string()))),
+                }
+            }
+            None => Response::NotFound(Json(Code::not_found())),
         }
     }
 
@@ -129,22 +109,21 @@ impl Api {
         _auth: Authenticate,
         db: Data<&Db>,
         id: Path<u32>,
-    ) -> Result<remove_item::Response, remove_item::Error> {
-        use remove_item::{
-            Error::{InternalError, NotFound},
-            Response,
-        };
-
+    ) -> Response<String> {
         let mut db = db.lock().await;
 
-        if let Some(pos) = db.items.iter().position(|item| item.id == *id) {
-            db.items.remove(pos);
+        match db.items.iter().position(|item| item.id == *id) {
+            Some(pos) => {
+                db.items.remove(pos);
 
-            save_db(&db).await.map_err(|_| InternalError)?;
-
-            return Ok(Response::Ok(PlainText("Item deleted".to_string())));
+                match save_db(&db).await {
+                    Ok(_) => {
+                        Response::Ok(Json(Code::success("Item deleted successfully".to_string())))
+                    }
+                    Err(e) => Response::InternalError(Json(Code::internal_error(e.to_string()))),
+                }
+            }
+            None => Response::NotFound(Json(Code::not_found())),
         }
-
-        Err(NotFound)
     }
 }
