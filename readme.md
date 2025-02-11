@@ -1,6 +1,6 @@
 # Rust - Poem Open API Starter Server
 
-Build your server with Rust using [poem(https://docs.rs/poem-openapi/5.1.5/poem_openapi/)] framework. 
+Build your server with Rust using [poem](https://docs.rs/poem-openapi/5.1.5/poem_openapi/) framework. 
 
 ## Requirements
 
