@@ -1,32 +1,28 @@
-use dotenvy::dotenv;
 use hmac::{Hmac, Mac};
 use poem::{listener::TcpListener, middleware::Cors, EndpointExt, Route, Server};
-use poem_api::{api::Api, db::load_db};
+use poem_api::{api::Api, db::load_db, env::load_env};
 use poem_openapi::OpenApiService;
 use sha2::Sha256;
 
 pub type ServerKey = Hmac<Sha256>;
+
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     tracing_subscriber::fmt::init();
-    dotenv().ok();
+    let env = load_env("./.env.example")?;
 
-    let host = std::env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
-    let port = std::env::var("PORT").unwrap_or_else(|_| "3000".to_string());
-    let secret_binding = std::env::var("APP_SECRET").unwrap_or_else(|_| "secret".to_string());
-    let server_key = secret_binding.as_bytes();
+    let host = env.get("HOST").expect("`HOST` is not set on Env");
+    let port = env.get("PORT").expect("`PORT` is not set on Env");
+    let server_key = env
+        .get("APP_SECRET")
+        .expect("`APP_SECRET` is not set on Env");
 
     let address = format!("{}:{}", host, port);
 
-    let db = match load_db().await {
-        Ok(db) => db,
-        Err(err) => {
-            eprintln!("Error loading database: {}", err);
-            std::process::exit(1);
-        }
-    };
+    let db = load_db().await?;
 
-    let server_key = Hmac::<Sha256>::new_from_slice(server_key).expect("valid server key");
+    let server_key =
+        Hmac::<Sha256>::new_from_slice(server_key.as_bytes()).expect("Server Key Invalid");
 
     let item_service = OpenApiService::new(Api, "Items API", "1.0");
 

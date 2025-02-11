@@ -11,7 +11,7 @@ serde = {version="1", features=["derive"]}
 serde_json = "1"
 tracing-subscriber = "0.3"
 tracing = "0.1"
-dotenvy = {version ="0.15.7"}
 hmac = "0.12.1"
 sha2 = "0.10.8"
 jwt = "0.16.0"
+dotenvy = { git = "https://github.com/allan2/dotenvy", features=["macros"] }
