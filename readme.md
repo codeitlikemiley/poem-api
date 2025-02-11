@@ -32,33 +32,40 @@ The project uses a specific version of Rust, which is managed automatically usin
    ```
 
 
-### Environment Variables
-
-1. **Copy Environment File**:
-   ```bash
-   cp .env.example .env
-   ```
-
-2. **Configure Environment Variables**:
-   ```env
-   PORT=3000
-   HOST=127.0.0.1
-   APP_SECRET=secret
-   ```
-
-
 ### Running The Server
 
-1. **Install Dependencies**:
-
-   ```bash
-   cargo build
-   ```
-
-2. **Running the Server**:
+1. **Running the Server**:
 
    ```bash
    cargo run
+   ```
+
+   > By Default `cargo run` uses `.env.example` ENV Variable
+
+   ```env
+   PORT=3000
+   HOST=127.0.0.1
+   APP_SECRET=secret 
+   ```
+
+
+   > NOTE: If you need to use other `PORT` you can pass in it as an ENV Variable
+
+   ```bash
+   PORT=8000 cargo run
+   ```
+
+### Running in Production
+
+1. Build Release
+
+   ```bash
+   cargo build --release
+   ```
+2. Run in Production
+
+   ```bash
+   APP_ENV=prod PORT=3001 APP_SECRET=SomeRandomString HOST=localhost ./target/release/poem-api
    ```
 
 
