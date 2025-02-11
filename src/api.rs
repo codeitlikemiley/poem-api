@@ -1,5 +1,5 @@
 use jwt::SignWithKey;
-use poem::{error::InternalServerError, http::StatusCode, web::Data, Error, Result};
+use poem::{web::Data, Result};
 use poem_openapi::{
     param::Path,
     payload::{Json, PlainText},
@@ -11,7 +11,7 @@ use crate::{
     db::{save_db, Db},
     models::Item,
     requests::{ItemRequest, LoginRequest},
-    responses::DeleteItemResponse,
+    responses::{create_item, fetch_items, find_item, login, modify_item, remove_item},
 };
 
 #[derive(Tags)]
@@ -29,19 +29,25 @@ impl Api {
         &self,
         server_key: Data<&ServerKey>,
         req: Json<LoginRequest>,
-    ) -> Result<PlainText<String>> {
+    ) -> Result<login::Response, login::Error> {
+        use login::{Error::InternalError, Response};
+
         let user = AuthUser {
             username: req.0.username,
         }
         .sign_with_key(server_key.0)
-        .map_err(InternalServerError)?;
-        Ok(PlainText(user))
+        .map_err(|_| InternalError)?;
+
+        Ok(Response::Ok(PlainText(user)))
     }
 
     #[oai(path = "/items", method = "get", tag = "Group::Items")]
-    async fn get_items(&self, db: Data<&Db>) -> Result<Json<Vec<Item>>> {
+    async fn get_items(&self, db: Data<&Db>) -> Result<fetch_items::Response, fetch_items::Error> {
+        use fetch_items::Response;
+
         let db = db.lock().await;
-        Ok(Json(db.items.clone()))
+
+        Ok(Response::Ok(Json(db.items.clone())))
     }
 
     #[oai(path = "/items", method = "post", tag = "Group::Items")]
@@ -50,28 +56,40 @@ impl Api {
         _auth: Authenticate,
         db: Data<&Db>,
         req: Json<ItemRequest>,
-    ) -> Result<Json<Item>> {
+    ) -> Result<create_item::Response, create_item::Error> {
+        use create_item::{Error::InternalError, Response};
+
         let mut db = db.lock().await;
+
         let new_item = Item {
             id: db.last_id + 1,
             name: req.name.clone(),
         };
+
         db.last_id += 1;
         db.items.push(new_item.clone());
 
-        save_db(&db).await?;
-        Ok(Json(new_item))
+        save_db(&db).await.map_err(|_| InternalError)?;
+
+        Ok(Response::Created(Json(new_item)))
     }
 
     #[oai(path = "/items/:id", method = "get", tag = "Group::Items")]
-    async fn get_item(&self, db: Data<&Db>, id: Path<u32>) -> Result<Json<Item>> {
+    async fn get_item(
+        &self,
+        db: Data<&Db>,
+        id: Path<u32>,
+    ) -> Result<find_item::Response, find_item::Error> {
+        use find_item::{Error::NotFound, Response};
+
         let db = db.lock().await;
+
         db.items
             .iter()
             .find(|item| item.id == *id)
             .cloned()
-            .map(Json)
-            .ok_or_else(|| Error::from_status(StatusCode::NOT_FOUND))
+            .map(|item| Response::Ok(Json(item)))
+            .ok_or_else(|| NotFound)
     }
 
     #[oai(path = "/items/:id", method = "put", tag = "Group::Items")]
@@ -81,7 +99,11 @@ impl Api {
         db: Data<&Db>,
         id: Path<u32>,
         req: Json<ItemRequest>,
-    ) -> Result<Json<Item>> {
+    ) -> Result<modify_item::Response, modify_item::Error> {
+        use modify_item::{
+            Error::{InternalError, NotFound},
+            Response,
+        };
         let mut db = db.lock().await;
 
         let updated_item = {
@@ -94,10 +116,10 @@ impl Api {
         };
 
         if let Some(item) = updated_item {
-            save_db(&db).await?;
-            Ok(Json(item))
+            save_db(&db).await.map_err(|_| InternalError)?;
+            Ok(Response::Ok(Json(item)))
         } else {
-            Err(Error::from_status(StatusCode::NOT_FOUND))
+            Err(NotFound)
         }
     }
 
@@ -107,15 +129,22 @@ impl Api {
         _auth: Authenticate,
         db: Data<&Db>,
         id: Path<u32>,
-    ) -> Result<Json<DeleteItemResponse>> {
+    ) -> Result<remove_item::Response, remove_item::Error> {
+        use remove_item::{
+            Error::{InternalError, NotFound},
+            Response,
+        };
+
         let mut db = db.lock().await;
+
         if let Some(pos) = db.items.iter().position(|item| item.id == *id) {
             db.items.remove(pos);
 
-            save_db(&db).await?;
+            save_db(&db).await.map_err(|_| InternalError)?;
 
-            return Ok(Json(DeleteItemResponse::default()));
+            return Ok(Response::Ok(PlainText("Item deleted".to_string())));
         }
-        Err(Error::from_status(StatusCode::NOT_FOUND))
+
+        Err(NotFound)
     }
 }
