@@ -3,7 +3,7 @@ use poem::{error::InternalServerError, http::StatusCode, web::Data, Error, Resul
 use poem_openapi::{
     param::Path,
     payload::{Json, PlainText},
-    OpenApi,
+    OpenApi, Tags,
 };
 
 use crate::{
@@ -14,11 +14,17 @@ use crate::{
     responses::DeleteItemResponse,
 };
 
+#[derive(Tags)]
+enum Group {
+    Auth,
+    Items,
+}
+
 pub struct Api;
 
 #[OpenApi]
 impl Api {
-    #[oai(path = "/login", method = "post")]
+    #[oai(path = "/login", method = "post", tag = "Group::Auth")]
     async fn login(
         &self,
         server_key: Data<&ServerKey>,
@@ -32,13 +38,13 @@ impl Api {
         Ok(PlainText(user))
     }
 
-    #[oai(path = "/items", method = "get")]
+    #[oai(path = "/items", method = "get", tag = "Group::Items")]
     async fn get_items(&self, db: Data<&Db>) -> Result<Json<Vec<Item>>> {
         let db = db.lock().await;
         Ok(Json(db.items.clone()))
     }
 
-    #[oai(path = "/items", method = "post")]
+    #[oai(path = "/items", method = "post", tag = "Group::Items")]
     async fn add_item(
         &self,
         _auth: Authenticate,
@@ -57,7 +63,7 @@ impl Api {
         Ok(Json(new_item))
     }
 
-    #[oai(path = "/items/:id", method = "get")]
+    #[oai(path = "/items/:id", method = "get", tag = "Group::Items")]
     async fn get_item(&self, db: Data<&Db>, id: Path<u32>) -> Result<Json<Item>> {
         let db = db.lock().await;
         db.items
@@ -68,7 +74,7 @@ impl Api {
             .ok_or_else(|| Error::from_status(StatusCode::NOT_FOUND))
     }
 
-    #[oai(path = "/items/:id", method = "put")]
+    #[oai(path = "/items/:id", method = "put", tag = "Group::Items")]
     async fn update_item(
         &self,
         _auth: Authenticate,
@@ -95,7 +101,7 @@ impl Api {
         }
     }
 
-    #[oai(path = "/items/:id", method = "delete")]
+    #[oai(path = "/items/:id", method = "delete", tag = "Group::Items")]
     async fn delete_item(
         &self,
         _auth: Authenticate,
