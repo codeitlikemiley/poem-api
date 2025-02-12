@@ -4,10 +4,11 @@ use poem_openapi::{
     ApiResponse,
 };
 
+use crate::validators::Validation;
+
 pub type CustomMessage = PlainText<String>;
 
 pub mod login {
-    use crate::validators::Validation;
 
     use super::*;
 
@@ -104,6 +105,8 @@ pub mod create_item {
         InternalError,
         #[oai(status = 400)]
         BadRequest(CustomMessage),
+        #[oai(status = 422)]
+        ValidationErrors(Json<Validation>),
     }
 
     fn bad_request_handler(err: poem::Error) -> Error {
@@ -130,6 +133,8 @@ pub mod modify_item {
         NotFound,
         #[oai(status = 400)]
         BadRequest(CustomMessage),
+        #[oai(status = 422)]
+        ValidationErrors(Json<Validation>),
         #[oai(status = 500)]
         InternalError,
     }
