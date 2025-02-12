@@ -1,7 +1,7 @@
 use hmac::{Hmac, Mac};
 use poem::{
     listener::TcpListener,
-    middleware::{Cors, Tracing},
+    middleware::{CatchPanic, Cors, Tracing},
     EndpointExt, Route, Server,
 };
 use poem_api::{api::Api, db::load_db, env::load_env};
@@ -35,6 +35,7 @@ async fn main() -> std::io::Result<()> {
     let app = Route::new()
         .nest("/", item_service.data(db).data(server_key).with(Tracing))
         .nest("/docs", ui)
+        .with(CatchPanic::new())
         .with(Cors::new());
 
     Server::new(TcpListener::bind(address)).run(app).await?;
