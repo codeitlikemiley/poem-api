@@ -3,7 +3,7 @@ use poem::{
     middleware::{CatchPanic, Cors, Tracing},
     EndpointExt, Route,
 };
-use poem_api::{api::Api, db::load_db, env::load_env};
+use poem_api::{api::Api, db::load_db};
 use poem_openapi::OpenApiService;
 use sha2::Sha256;
 use shuttle_poem::ShuttlePoem;
@@ -11,11 +11,12 @@ use shuttle_poem::ShuttlePoem;
 pub type ServerKey = Hmac<Sha256>;
 
 #[shuttle_runtime::main]
-async fn main() -> ShuttlePoem<impl poem::Endpoint> {
+async fn main(
+    #[shuttle_runtime::Secrets] secrets: shuttle_runtime::SecretStore,
+) -> ShuttlePoem<impl poem::Endpoint> {
     tracing_subscriber::fmt().try_init().ok();
-    let env = load_env("./.env.example")?;
 
-    let server_key = env
+    let server_key = secrets
         .get("APP_SECRET")
         .expect("`APP_SECRET` is not set on Env");
 
