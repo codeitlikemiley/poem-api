@@ -105,6 +105,8 @@ pub mod create_item {
         InternalError,
         #[oai(status = 400)]
         BadRequest(CustomMessage),
+        #[oai(status = 401)]
+        Unauthorized,
         #[oai(status = 422)]
         ValidationErrors(Json<Validation>),
     }
@@ -133,6 +135,8 @@ pub mod modify_item {
         NotFound,
         #[oai(status = 400)]
         BadRequest(CustomMessage),
+        #[oai(status = 401)]
+        Unauthorized,
         #[oai(status = 422)]
         ValidationErrors(Json<Validation>),
         #[oai(status = 500)]
