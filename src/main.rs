@@ -7,21 +7,18 @@ use poem::{
 use poem_api::{api::Api, db::load_db, env::load_env};
 use poem_openapi::OpenApiService;
 use sha2::Sha256;
+use shuttle_poem::ShuttlePoem;
 
 pub type ServerKey = Hmac<Sha256>;
 
-#[tokio::main]
-async fn main() -> std::io::Result<()> {
-    tracing_subscriber::fmt::init();
+#[shuttle_runtime::main]
+async fn main() -> ShuttlePoem<impl poem::Endpoint> {
+    tracing_subscriber::fmt().try_init().ok();
     let env = load_env("./.env.example")?;
 
-    let host = env.get("HOST").expect("`HOST` is not set on Env");
-    let port = env.get("PORT").expect("`PORT` is not set on Env");
     let server_key = env
         .get("APP_SECRET")
         .expect("`APP_SECRET` is not set on Env");
-
-    let address = format!("{}:{}", host, port);
 
     let db = load_db().await?;
 
@@ -38,6 +35,5 @@ async fn main() -> std::io::Result<()> {
         .with(CatchPanic::new())
         .with(Cors::new());
 
-    Server::new(TcpListener::bind(address)).run(app).await?;
-    Ok(())
+    Ok(app.into())
 }
