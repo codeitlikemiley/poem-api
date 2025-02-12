@@ -2,9 +2,9 @@ use poem_openapi::Object;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-#[derive(Debug, Object, Serialize, Deserialize)]
+#[derive(Debug, Object, Serialize, Deserialize, Validate)]
 pub struct ItemRequest {
-    #[oai(validator(min_length = 3, max_length = 60))]
+    #[validate(length(min = 1, message = "name is too short"))]
     pub name: String,
 }
 
