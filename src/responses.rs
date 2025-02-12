@@ -137,12 +137,28 @@ pub mod modify_item {
 }
 
 pub mod remove_item {
+    use poem_openapi::Object;
+    use serde::Serialize;
+
     use super::*;
+
+    #[derive(Object, Serialize)]
+    pub struct DeletedMessage {
+        message: String,
+    }
+
+    impl DeletedMessage {
+        pub fn new() -> Self {
+            Self {
+                message: "Item deleted successfully".to_string(),
+            }
+        }
+    }
 
     #[derive(ApiResponse)]
     pub enum Response {
         #[oai(status = 200)]
-        Ok(PlainText<String>),
+        Ok(Json<DeletedMessage>),
     }
 
     #[derive(ApiResponse)]

@@ -11,7 +11,10 @@ use crate::{
     db::{save_db, Db},
     models::Item,
     requests::{ItemRequest, LoginRequest},
-    responses::{create_item, fetch_items, find_item, login, modify_item, remove_item},
+    responses::{
+        create_item, fetch_items, find_item, login, modify_item,
+        remove_item::{self, DeletedMessage},
+    },
 };
 
 #[derive(Tags)]
@@ -142,7 +145,7 @@ impl Api {
 
             save_db(&db).await.map_err(|_| InternalError)?;
 
-            return Ok(Response::Ok(PlainText("Item deleted".to_string())));
+            return Ok(Response::Ok(Json(DeletedMessage::new())));
         }
 
         Err(NotFound)
