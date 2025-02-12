@@ -16,6 +16,7 @@ use crate::{
         remove_item::{self, DeletedMessage},
     },
 };
+use validator::Validate;
 
 #[derive(Tags)]
 enum Group {
@@ -33,7 +34,14 @@ impl Api {
         server_key: Data<&ServerKey>,
         req: Json<LoginRequest>,
     ) -> Result<login::Response, login::Error> {
-        use login::{Error::InternalError, Response};
+        use login::{
+            Error::{InternalError, ValidationErrors},
+            Response,
+        };
+
+        if let Err(e) = req.0.validate() {
+            return Err(ValidationErrors(Json(e.into())));
+        }
 
         let user = AuthUser {
             username: req.0.username,
@@ -60,7 +68,14 @@ impl Api {
         db: Data<&Db>,
         req: Json<ItemRequest>,
     ) -> Result<create_item::Response, create_item::Error> {
-        use create_item::{Error::InternalError, Response};
+        use create_item::{
+            Error::{InternalError, ValidationErrors},
+            Response,
+        };
+
+        if let Err(e) = req.0.validate() {
+            return Err(ValidationErrors(Json(e.into())));
+        }
 
         let mut db = db.lock().await;
 
@@ -104,9 +119,14 @@ impl Api {
         req: Json<ItemRequest>,
     ) -> Result<modify_item::Response, modify_item::Error> {
         use modify_item::{
-            Error::{InternalError, NotFound},
+            Error::{InternalError, NotFound, ValidationErrors},
             Response,
         };
+
+        if let Err(e) = req.0.validate() {
+            return Err(ValidationErrors(Json(e.into())));
+        }
+
         let mut db = db.lock().await;
 
         let updated_item = {
