@@ -1,5 +1,9 @@
 use hmac::{Hmac, Mac};
-use poem::{listener::TcpListener, middleware::Cors, EndpointExt, Route, Server};
+use poem::{
+    listener::TcpListener,
+    middleware::{Cors, Tracing},
+    EndpointExt, Route, Server,
+};
 use poem_api::{api::Api, db::load_db, env::load_env};
 use poem_openapi::OpenApiService;
 use sha2::Sha256;
@@ -29,7 +33,7 @@ async fn main() -> std::io::Result<()> {
     let ui = item_service.swagger_ui();
 
     let app = Route::new()
-        .nest("/", item_service.data(db).data(server_key))
+        .nest("/", item_service.data(db).data(server_key).with(Tracing))
         .nest("/docs", ui)
         .with(Cors::new());
 
