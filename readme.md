@@ -4,6 +4,8 @@
 
 Build your server with Rust using [poem](https://docs.rs/poem-openapi/5.1.5/poem_openapi/) framework. 
 
+Test Live On: https://poem-api-9ix8.shuttle.app/docs
+
 
 ## Installation
 
