@@ -14,6 +14,7 @@ Test Live On: https://poem-api-9ix8.shuttle.app/docs
    ```bash
    git clone https://github.com/codeitlikemiley/poem-api.git
    cd poem-api
+   git checkout shuttle
    ```
 
 2. **Set the Rust Toolchain**:
