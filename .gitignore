@@ -6,3 +6,5 @@ data.json
 *.bak
 Cargo.lock
 .DS_Store
+.shuttle*
+Secrets*.toml
