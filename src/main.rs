@@ -1,8 +1,7 @@
 use hmac::{Hmac, Mac};
 use poem::{
-    listener::TcpListener,
     middleware::{CatchPanic, Cors, Tracing},
-    EndpointExt, Route, Server,
+    EndpointExt, Route,
 };
 use poem_api::{api::Api, db::load_db, env::load_env};
 use poem_openapi::OpenApiService;
