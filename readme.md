@@ -27,6 +27,11 @@ Test Live On: https://poem-api-9ix8.shuttle.app/docs
    ```bash
    cargo install cargo-shuttle
    ```
+4. **Install Cargo Watch**
+
+   ```bash
+   cargo install cargo-watch
+   ```
 
 ###  Development
 
@@ -35,21 +40,26 @@ Test Live On: https://poem-api-9ix8.shuttle.app/docs
 
 Go to your project root directory
 
-```sh
-touch Secrets.toml
-```
+   ```sh
+   touch Secrets.toml
+   ```
 
 Set `Secrets.toml`
 
-```toml
-APP_SECRET="secret"
-RUST_LOG="poem=debug"
-```
+   ```toml
+   APP_SECRET="secret"
+   RUST_LOG="poem=debug"
+   ```
 
 2. **Running Locally:**
 
    ```bash
    shuttle run
+   ```
+3. **Run with Cargo Watch**
+
+   ```bash
+   cargo watch -qcs 'shuttle run'
    ```
 
 
