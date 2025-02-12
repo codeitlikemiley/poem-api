@@ -14,7 +14,6 @@ tracing = "0.1"
 hmac = "0.12.1"
 sha2 = "0.10.8"
 jwt = "0.16.0"
-dotenvy = { git = "https://github.com/allan2/dotenvy", features=["macros"] }
 validator = { version = "0.20.0", features = ["derive"] }
 shuttle-poem = "0.52.0"
 shuttle-runtime = "0.52.0"
