@@ -177,6 +177,8 @@ pub mod remove_item {
     pub enum Error {
         #[oai(status = 404)]
         NotFound,
+        #[oai(status = 401)]
+        Unauthorized,
         #[oai(status = 400)]
         BadRequest(CustomMessage),
         #[oai(status = 500)]
