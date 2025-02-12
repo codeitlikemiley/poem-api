@@ -4,13 +4,17 @@ use poem_openapi::{
     ApiResponse,
 };
 
+pub type CustomMessage = PlainText<String>;
+
 pub mod login {
+    use crate::validators::Validation;
+
     use super::*;
 
     #[derive(ApiResponse)]
     pub enum Response {
         #[oai(status = 200)]
-        Ok(PlainText<String>),
+        Ok(CustomMessage),
     }
 
     #[derive(ApiResponse)]
@@ -19,7 +23,9 @@ pub mod login {
         #[oai(status = 500)]
         InternalError,
         #[oai(status = 400)]
-        BadRequest(PlainText<String>),
+        BadRequest(CustomMessage),
+        #[oai(status = 422)]
+        ValidationErrors(Json<Validation>),
     }
 
     fn bad_request_handler(err: poem::Error) -> Error {
@@ -45,7 +51,7 @@ pub mod fetch_items {
         #[oai(status = 500)]
         InternalError,
         #[oai(status = 400)]
-        BadRequest(PlainText<String>),
+        BadRequest(CustomMessage),
     }
 
     fn bad_request_handler(err: poem::Error) -> Error {
@@ -71,7 +77,7 @@ pub mod find_item {
         #[oai(status = 404)]
         NotFound,
         #[oai(status = 400)]
-        BadRequest(PlainText<String>),
+        BadRequest(CustomMessage),
     }
 
     fn bad_request_handler(err: poem::Error) -> Error {
@@ -97,7 +103,7 @@ pub mod create_item {
         #[oai(status = 500)]
         InternalError,
         #[oai(status = 400)]
-        BadRequest(PlainText<String>),
+        BadRequest(CustomMessage),
     }
 
     fn bad_request_handler(err: poem::Error) -> Error {
@@ -123,7 +129,7 @@ pub mod modify_item {
         #[oai(status = 404)]
         NotFound,
         #[oai(status = 400)]
-        BadRequest(PlainText<String>),
+        BadRequest(CustomMessage),
         #[oai(status = 500)]
         InternalError,
     }
@@ -167,7 +173,7 @@ pub mod remove_item {
         #[oai(status = 404)]
         NotFound,
         #[oai(status = 400)]
-        BadRequest(PlainText<String>),
+        BadRequest(CustomMessage),
         #[oai(status = 500)]
         InternalError,
     }
