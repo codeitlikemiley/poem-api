@@ -1,5 +1,6 @@
 use poem_openapi::Object;
 use serde::{Deserialize, Serialize};
+use validator::Validate;
 
 #[derive(Debug, Object, Serialize, Deserialize)]
 pub struct ItemRequest {
@@ -7,8 +8,8 @@ pub struct ItemRequest {
     pub name: String,
 }
 
-#[derive(Object)]
+#[derive(Object, Validate)]
 pub struct LoginRequest {
-    #[oai(validator(min_length = 3, max_length = 60,))]
+    #[validate(email(message = "username must be a valid email"))]
     pub username: String,
 }
