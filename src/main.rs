@@ -14,8 +14,6 @@ pub type ServerKey = Hmac<Sha256>;
 async fn main(
     #[shuttle_runtime::Secrets] secrets: shuttle_runtime::SecretStore,
 ) -> ShuttlePoem<impl poem::Endpoint> {
-    tracing_subscriber::fmt().try_init().ok();
-
     let server_key = secrets
         .get("APP_SECRET")
         .expect("`APP_SECRET` is not set on Env");
